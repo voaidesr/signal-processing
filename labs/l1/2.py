@@ -50,3 +50,4 @@ ax[3, 1].axis('off')
 fig.tight_layout()
 
 plt.show()
+# plt.savefig('./imgs/2.svg')

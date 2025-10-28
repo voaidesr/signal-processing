@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
+from matplotlib.animation import FuncAnimation, PillowWriter
 
 fs = 1000
 t = np.arange(0, 1, 1/fs)
@@ -53,5 +53,4 @@ def update(i):
     return line1, dot1, line2, line3, line4, line5
 
 ani = FuncAnimation(fig, update, frames=len(t), interval=5, blit=True)
-
-plt.show()
+ani.save('./imgs/2.gif', writer='ffmpeg', fps=30)

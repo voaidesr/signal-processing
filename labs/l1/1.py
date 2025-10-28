@@ -26,3 +26,4 @@ ax[1].stem(xn, cos_yn, 'r')
 ax[2].stem(xn, cos_zn, 'r')
 
 plt.show()
+# plt.savefig('./imgs/1.svg')

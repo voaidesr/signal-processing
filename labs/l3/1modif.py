@@ -20,7 +20,7 @@ for m in range(3):
         ax[m, 0].tick_params(labelbottom=False)
         ax[m, 1].tick_params(labelbottom=False)
 
-plt.show()
+plt.savefig('./imgs/1modif.svg')
 
 FH = F.conj().T
 

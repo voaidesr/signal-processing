@@ -29,4 +29,4 @@ mag = np.abs(X[:k]) / N
 
 ax[0].plot(x, sig)
 ax[1].stem(f, mag)
-plt.show()
+plt.savefig('./imgs/3.svg')
