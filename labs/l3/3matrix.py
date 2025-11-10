@@ -1,6 +1,6 @@
+
 import numpy as np
 import matplotlib.pyplot as plt
-
 
 def signal(x, *freq):
     s = np.zeros(len(x))
@@ -16,13 +16,12 @@ x = np.arange(0, 1, 1/fs)
 sig = signal(x, 10, 30, 40, 50, 60, 65, 90)
 
 N = len(sig)
-X = np.zeros(N)
 
-for m in range(N):
-    s = 0.0 + 0.0j
-    for n in range(N):
-        s += sig[n] * np.exp(-2j * np.pi * m * n /N)
-    X[m] = np.hypot(np.real(s), np.imag(s))
+n = np.arange(N)
+F = np.exp(-2j * np.pi * np.outer(n, n) / N)
+
+X = np.abs(F @ sig)
+
 
 k = N//2 + 1
 f = np.arange(k) * fs / N
@@ -30,4 +29,4 @@ mag = np.abs(X[:k]) / N
 
 ax[0].plot(x, sig)
 ax[1].stem(f, mag)
-plt.savefig('./imgs/3.svg')
+plt.savefig('./imgs/3matrix.svg')
