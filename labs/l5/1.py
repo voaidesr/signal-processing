@@ -83,7 +83,7 @@ def low_pass_filter(sig, fs):
     cutoff_freq = 1 / (12 * 3600)
 
     mask = np.abs(freqs) < cutoff_freq
-    X_filtered = X * mask / N
+    X_filtered = X * mask
 
     sig_filtered = np.fft.ifft(X_filtered)
 
