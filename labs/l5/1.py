@@ -83,7 +83,7 @@ def low_pass_filter(sig, fs):
     cutoff_freq = 1 / (12 * 3600)
 
     mask = np.abs(freqs) < cutoff_freq
-    X_filtered = X * mask
+    X_filtered = X * mask / N
 
     sig_filtered = np.fft.ifft(X_filtered)
 
@@ -111,6 +111,7 @@ if __name__ == "__main__":
     # show_month(sig, fs, contents)
 
     # ---- i
+    sig = sig[:1001]
     filter = low_pass_filter(sig, fs)
     fig, axes = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
     axes[0].plot(sig, label="Semnal original")
@@ -126,7 +127,6 @@ if __name__ == "__main__":
 
     for axis in axes:
         axis.set_xlim(0, 1000)
-        axis.set_ylim(-100, 200)
 
     fig.tight_layout()
     plt.savefig('./imgs/i.svg')
