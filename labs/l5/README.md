@@ -74,7 +74,8 @@ Aceste frecvențe sunt cele mai apropiate de 0 și indică o tendință (schimba
 
 - *Pasul 3*: comparăm distribuția weekend/sărbători calculată de noi cu această mască, pentru a determina anul.
 
->[!warning] *Surse de erori*
+>[!warning]
+> *Surse de erori*
 >
 > - Sărbătorile pot să ducă la un calcul greșit al weekend-urilor (dacă avem două sărbători, între care se află weekend-ul, atunci fereastra de plasare a weekend-ului este mult mai mare și ridică riscul erorii).
 > - Nu toate sărbătorile marchează o scădere în intensitatea mașinilor - dacă orașul este turistic (e.g., are multe târguri de Crăciun), intensitatea mașinilor nu va scădea, ca într-un weekend.
