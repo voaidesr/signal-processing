@@ -51,6 +51,7 @@ $$
 $$
 
 Anume
+
 $$
 \begin{aligned}
 &f_1 = \Delta f\\
