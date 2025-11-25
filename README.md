@@ -9,4 +9,5 @@ Solutions to the lab work for the Signal Processing Course @ FMI Unibuc, 2025.
 - [Lab 3](./labs/l3)  - Discrete Fourier Transform.
 - [Lab 4](./labs/l4) - Fast Fourier Transform, Spectrograms, Aliasing.
 - [Lab 5](./labs/l5/) - The Fourier Transform on real data.
-- [Lab 6](./labs/l6) - Convolution, the Sinc function.
+- [Lab 6](./labs/l6) - Convolution, the Sinc function, filtering: Rolling Mean, Butterworth and Chebyshev.
+- [Lab 7](./labs/l7/) - 2D FFT, Image Processing.
