@@ -12,3 +12,4 @@ Solutions to the lab work for the Signal Processing Course @ FMI Unibuc, 2025.
 - [Lab 6](./labs/l6) - Convolution, the Sinc function, filtering: Rolling Mean, Butterworth and Chebyshev.
 - [Lab 7](./labs/l7/) - 2D FFT, Image Processing.
 - [Lab 8](./labs/l8/) - Introduction to Time Series. Autocorrelation. The AR model.
+- [Lab 9](./labs/l9/) - Time series (cont.). MA, EMA, ARMA.
