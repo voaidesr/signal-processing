@@ -239,6 +239,7 @@ def pt_b():
     )
     ax[2][1].legend(fontsize='small')
 
+    plt.tight_layout()
     plt.savefig('./imgs/2.svg')
 
 
