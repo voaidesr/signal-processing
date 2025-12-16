@@ -1,54 +1,153 @@
-import sys
-import os
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.optimize import minimize
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.append(parent_dir)
+def get_time_series(N):
+    t = np.arange(N)
 
-from l8 import ar
+    a, b, c = 0.005, 0.1, 2
+    trend = a * t**2 + b * t + c
 
-def exponential_average(time_series: np.ndarray, alpha: float) -> np.ndarray:
-    ema = np.zeros(len(time_series))
-    ema[0] = time_series[0]
+    f1, f2 = 1 / 5, 1 / 3
+    A1, A2 = 5, 3
+    seasonal = A1 * np.sin(2 * np.pi * f1 * t) + A2 * np.sin(2 * np.pi * f2 * t)
 
-    for t in range(1, len(time_series)):
-        ema[t] = alpha * time_series[t] + (1 - alpha) * ema[t-1]
+    sd = 5
+    noise = np.random.normal(0, sd, size=N)
 
-    return ema
+    return trend + seasonal + noise, trend, seasonal
+
 
 def mse(original: np.ndarray, approximated: np.ndarray) -> float:
     return np.mean((original - approximated) ** 2).astype(float)
 
-def find_optimal_alpha(time_series: np.ndarray, reference: np.ndarray, depth: int = 1) -> tuple[float, float, np.ndarray]:
+
+def exponential_average(time_series: np.ndarray, alpha: float) -> np.ndarray:
+    ema = np.zeros(len(time_series) - 1)
+    ema[0] = time_series[0]
+
+    for t in range(1, len(time_series) - 1):
+        ema[t] = alpha * time_series[t] + (1 - alpha) * ema[t - 1]
+
+    return ema
+
+
+def optimal_alpha(original: np.ndarray) -> tuple[float, float, np.ndarray]:
     best_alpha = 0
-    best_mse = float('inf')
-    best_approx = None
+    best_mse = float("inf")
+    best_approx = np.ndarray([])
 
-    alphas = np.linspace(0.01, 0.99, 100)
+    alphas = np.linspace(0.01, 0.99, 100).astype(float)
+
     for alpha in alphas:
-        s1 = exponential_average(time_series, alpha)
-        approx = s1
-        if depth >= 2:
-            s2 = exponential_average(s1, alpha)
-            approx = 2 * s1 - s2
-
-        if depth >= 3:
-            s3 = exponential_average(s2, alpha)
-            approx = 3 * s1 - 3 * s2 + s3
-
-        valid_ref = reference[20:]
-        valid_approx = approx[20:]
-
-        err = mse(valid_ref, valid_approx)
+        approx = exponential_average(original, alpha)
+        err = mse(original[1:], approx)
 
         if err < best_mse:
             best_mse = err
             best_approx = approx
             best_alpha = alpha
 
-    return best_alpha, best_mse, best_approx # type: ignore
+    return best_alpha, best_mse, best_approx
+
+def double_ema(original: np.ndarray, alpha: float, beta: float) -> np.ndarray:
+    n = len(original)
+
+    s = np.zeros(n)
+    b = np.zeros(n)
+
+    s[0] = original[0]
+    b[0] = original[1] - original[0]
+    predictions = np.zeros(n)
+
+    predictions[0] = s[0]
+    predictions[1] = s[0] + b[0]
+
+    for t in range(1, n-1):
+        s[t] = alpha * original[t] + (1 - alpha) * (s[t - 1] + b[t - 1])
+        b[t] = beta * (s[t] - s[t - 1]) + (1 - beta) * b[t - 1]
+
+        predictions[t + 1] = s[t] + b[t]
+
+    return predictions[2:]
+
+def optimal_alpha_beta(original: np.ndarray) -> tuple[float, float, float, np.ndarray]:
+    best_alpha = 0
+    best_beta = 0
+    best_mse = float('inf')
+    best_prediction = np.ndarray([])
+
+    steps = np.linspace(0.01, 0.99, 40)
+
+    for alpha in steps:
+        for beta in steps:
+            pred = double_ema(original, alpha, beta)
+
+            err = mse(original[2:], pred)
+
+            if err < best_mse:
+                best_alpha = alpha
+                best_beta = beta
+                best_mse = err
+                best_prediction = pred
+
+    return best_alpha, best_beta, best_mse, best_prediction
+
+def triple_ema(data: np.ndarray, alpha: float, beta: float, gamma: float, L: int) -> np.ndarray:
+    n = len(data)
+
+    s = np.zeros(n)
+    b = np.zeros(n)
+    c = np.zeros(n)
+    predictions = np.zeros(n)
+
+    s[L - 1] = np.mean(data[:L])
+    b[L - 1] = (data[L] - data[0]) / L
+
+    for t in range(L):
+        c[t] = data[t] - s[L - 1] # deviation from the mean
+
+    for t in range(L, n):
+        predictions[t] = s[t-1] + b[t-1] + c[t-L] # c[t - 1 - L + 1 + 0 mod L]
+
+        s[t] = alpha * (data[t] - c[t-L]) + (1 - alpha) * (s[t-1] + b[t-1])
+        b[t] = beta * (s[t] - s[t-1]) + (1 - beta) * b[t-1]
+        c[t] = gamma * (data[t] - s[t] - b[t-1]) + (1 - gamma) * c[t-L]
+
+    return predictions
+
+def optimal_al_be_ga(original: np.ndarray, L: int) -> tuple[float, float, float, np.ndarray]:
+
+    def triple_ema_objective(params, series, L):
+        alpha, beta, gamma = params
+
+        if not (0 <= alpha <= 1 and 0 <= beta <= 1 and 0 <= gamma <= 1):
+            return float('inf')
+
+        try:
+            predictions = triple_ema(series, alpha, beta, gamma, L)
+            err = np.mean((series[L:] - predictions[L:])**2)
+            return err
+        except Exception:
+            return float('inf')
+
+    initial_guess = [0.1, 0.1, 0.1]
+    bounds = [(0, 1), (0, 1), (0, 1)]
+
+    result = minimize(
+        triple_ema_objective,
+        initial_guess,
+        args=(original, L),
+        method='L-BFGS-B',
+        bounds=bounds
+    )
+
+    al, be, ga = result.x
+
+    predicted = triple_ema(original, al, be, ga, L)
+
+    return al, be, ga, predicted
+
 
 def ma(data: np.ndarray, p: int, theta: float) -> np.ndarray:
     n = len(data)
@@ -56,13 +155,13 @@ def ma(data: np.ndarray, p: int, theta: float) -> np.ndarray:
     rolling_mean = np.zeros(n)
 
     for t in range(p, n):
-        rolling_mean[t] = np.mean(data[t-p:t])
+        rolling_mean[t] = np.mean(data[t - p : t])
 
     errs = np.zeros(n)
     predictions = np.zeros(n)
 
     for t in range(p, n):
-        correction = theta * errs[t-1] # take the error from one step before
+        correction = theta * errs[t - 1]  # take the error from one step before
 
         predictions[t] = rolling_mean[t] + correction
 
@@ -74,7 +173,7 @@ def ma(data: np.ndarray, p: int, theta: float) -> np.ndarray:
 def find_optimal_ma_params(series: np.ndarray) -> tuple[int, float, float]:
     best_p = 0
     best_theta = 0
-    best_mse = float('inf')
+    best_mse = float("inf")
 
     p_values = range(1, 31)
     theta_values = np.linspace(0, 1, 20)
@@ -95,31 +194,58 @@ def find_optimal_ma_params(series: np.ndarray) -> tuple[int, float, float]:
 
     return best_p, best_theta, best_mse
 
+
 ## solutions
 def pt_b():
-    plt.figure(figsize=(10,6))
-    N = 200
-    series, trend, seasonal = ar.get_time_series(N)
+    N = 100
+    series, trend, seasonal = get_time_series(N)
     reference = trend + seasonal
 
-    alpha1, mse1, approx1 = find_optimal_alpha(series, reference, depth=1)
-    alpha2, mse2, approx2 = find_optimal_alpha(series, reference, depth=2)
-    alpha3, mse3, approx3 = find_optimal_alpha(series, reference, depth=3)
-    ema = exponential_average(series, alpha=0.6)
-    plt.plot(np.arange(N), reference, label="time series with no noise")
-    plt.plot(np.arange(N), approx1, label=rf"ema, $\alpha = {alpha1}, mse = {mse1}$")
-    plt.plot(np.arange(N), approx2, label=rf"double ema, $\alpha = {alpha2}, mse = {mse2} $")
-    plt.plot(np.arange(N), approx3, label=rf"triple ema, $\alpha = {alpha3}$, mse = {mse3}")
-    plt.legend()
-    plt.savefig('./imgs/b.svg')
-    plt.show()
-    plt.close()
+    fig, ax = plt.subplots(3, 2, figsize=(15, 8))
+
+    alpha, err, predict = optimal_alpha(series)
+
+    ax[0][0].plot(
+        np.arange(0, N), series, label=f"Noisy series\n$\\alpha = {alpha:.2f}$"
+    )
+    ax[0][0].plot(np.arange(1, N), predict, label="Predicted with Exponential MA")
+    ax[0][0].legend(fontsize='small')
+
+    ax[0][1].plot(series[1:] - predict, label="Error")
+    ax[0][1].legend(fontsize="small")
+
+    alpha, beta, err, predict = optimal_alpha_beta(series)
+
+    ax[1][0].plot(
+        np.arange(0, N), series, label=f"Noisy series\n$\\alpha = {alpha:.2f}$\n$\\beta={beta:.2f}$"
+    )
+    ax[1][0].plot(np.arange(2, N), predict, label="Double Exponential MA")
+    ax[1][0].legend(fontsize='small')
+
+    ax[1][1].plot(series[2:] - predict, label="Error")
+    ax[1][1].legend(fontsize='small')
+
+    L = 15
+    al, be, ga, predict = optimal_al_be_ga(series, L)
+    ax[2][0].plot(
+        np.arange(L, N), series[L:], label=f"Noisy series\n$\\alpha={alpha:.2f}$\n$\\beta={be:.2f}$\n$\\gamma={ga:.2f}$"
+    )
+    ax[2][0].plot(
+        np.arange(L, N), predict[L:], label="Triple Exponential MA"
+    )
+    ax[2][0].legend(fontsize=6)
+    ax[2][1].plot(
+        np.arange(L, N), series[L:] - predict[L:], label="Error"
+    )
+    ax[2][1].legend(fontsize='small')
+
+    plt.savefig('./imgs/2.svg')
 
 
 def pt_c():
-    plt.figure(figsize=(10,6))
+    plt.figure(figsize=(10, 6))
     N = 200
-    series, trend, seasonal = ar.get_time_series(N)
+    series, trend, seasonal = get_time_series(N)
 
     best_p, best_theta, best_err = find_optimal_ma_params(series)
     print(f"Best Found: p={best_p}, theta={best_theta:.2f} (MSE: {best_err:.2f})")
@@ -128,15 +254,20 @@ def pt_c():
 
     plt.plot(series, label="Noisy Time Series", alpha=0.6)
 
-    plt.plot(range(best_p, N), prediction[best_p:],
-             label=f"MA Model (p={best_p}, $\\theta$={best_theta:.2f})",
-             color='red', linewidth=2)
+    plt.plot(
+        range(best_p, N),
+        prediction[best_p:],
+        label=f"MA Model (p={best_p}, $\\theta$={best_theta:.2f})",
+        color="red",
+        linewidth=2,
+    )
 
     plt.title("Optimized Moving Average Model")
     plt.legend()
     # plt.show()
-    plt.savefig('./imgs/3.svg')
+    plt.savefig("./imgs/3.svg")
+
 
 if __name__ == "__main__":
-    # pt_b()
-    pt_c()
+    pt_b()
+    # pt_c()
