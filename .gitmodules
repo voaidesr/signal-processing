@@ -1,0 +1,3 @@
+[submodule "jpeg"]
+	path = jpeg
+	url = git@github.com:voaidesr/jpeg.git
