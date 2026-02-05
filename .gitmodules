@@ -1,3 +1,6 @@
 [submodule "jpeg"]
 	path = jpeg
 	url = git@github.com:voaidesr/jpeg.git
+[submodule "non-local-means-denoising"]
+	path = non-local-means-denoising
+	url = https://github.com/voaidesr/non-local-means-denoising
